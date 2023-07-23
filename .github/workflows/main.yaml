@@ -1,0 +1,35 @@
+name: Notify Telegram
+on: [push]
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Telegram message to 1st recipient
+        id: telegram
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO_1 }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            ${{ github.actor }} created commit.
+            
+            Repository: ${{ github.repository }}
+            
+            Commit message: ${{ github.event.commits[0].message }}
+            
+            See changes: https://github.com/${{ github.repository }}/commit/${{github.sha}}
+      - name: Send Telegram message to 2nd recipient
+        if: always()  # Add this to ensure this step runs even if previous steps fail
+        uses: appleboy/telegram-action@master
+        with:
+          to: ${{ secrets.TELEGRAM_TO_2 }}
+          token: ${{ secrets.TELEGRAM_TOKEN }}
+          message: |
+            ${{ github.actor }} created commit.
+            
+            Repository: ${{ github.repository }}
+            
+            Commit message: ${{ github.event.commits[0].message }}
+            
+            See changes: https://github.com/${{ github.repository }}/commit/${{github.sha}}
