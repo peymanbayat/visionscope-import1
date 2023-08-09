@@ -34,7 +34,9 @@ if __name__ == "__main__":
     ]
 
     if settings.IS_PLUS_ACCOUNT:
-        del WEIGHTS[2], WEIGHTS[3], WEIGHTS[4]
+        WEIGHTS.remove(MEDIUM_WEIGHT)
+        WEIGHTS.remove(LARGE_WEIGHT)
+        WEIGHTS.remove(EXTRA_LARGE_WEIGHT)
 
     # Minimum confidence
     MINIMUM_CONFIDENCE = 25
