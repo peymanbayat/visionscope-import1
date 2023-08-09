@@ -33,6 +33,7 @@ if __name__ == "__main__":
         EXTRA_LARGE_WEIGHT,
     ]
 
+    # For Plus account
     if settings.IS_PLUS_ACCOUNT:
         WEIGHTS.remove(MEDIUM_WEIGHT)
         WEIGHTS.remove(LARGE_WEIGHT)
@@ -50,6 +51,12 @@ if __name__ == "__main__":
     WEBCAM_SOURCE = "Webcam"
     RTSP_SOURCE = "RTSP"
     SOURCES = [IMAGE_SOURCE, VIDEO_SOURCE, WEBCAM_SOURCE, RTSP_SOURCE]
+
+    # For Plus account
+    if settings.IS_PLUS_ACCOUNT:
+        SOURCES.remove(VIDEO_SOURCE)
+        SOURCES.remove(WEBCAM_SOURCE)
+        SOURCES.remove(RTSP_SOURCE)
 
     # Supported image file extensions
     IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "bmp", "webp"]
