@@ -1,1 +1,1 @@
-PLUS_ACCOUNT_TOKEN = 'visionoscopeplus123'
+PLUS_ACCOUNT_TOKEN = 'visionoscopeplus'
