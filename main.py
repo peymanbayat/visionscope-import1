@@ -159,9 +159,8 @@ if __name__ == "__main__":
 
     def create_plus_account_token_field():
         if settings.APPLY_PLUS_ACCOUNT:
-            st.toast(
-                "Due to the limitation of computational power, this opportunity is only available to Plus Accounts!",
-                icon=ICON,
+            st.sidebar.write(
+                "Due to the limitation of computational power, this opportunity is only available to Plus Accounts!"
             )
             return st.sidebar.text_input(
                 "Enter Plus Account Token",
