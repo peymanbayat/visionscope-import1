@@ -24,4 +24,5 @@ IMAGES_DIRECTORY = ROOT / "demo_files/images"
 DEFAULT_IMAGE = IMAGES_DIRECTORY / "default.jpg"
 DEFAULT_RESULT_IMAGE = IMAGES_DIRECTORY / "default_result.jpg"
 
-IS_PLUS_ACCOUNT = True
+# Boolean switch for Plus Account support
+APPLY_PLUS_ACCOUNT = True

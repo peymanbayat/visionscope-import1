@@ -13,6 +13,7 @@ import plus_account_token
 
 if __name__ == "__main__":
     TITLE = "Visionoscope Workbench"
+    ICON = "🔬"
 
     # Models
     DETECT_MODEL = "Object Detection"
@@ -34,12 +35,6 @@ if __name__ == "__main__":
         EXTRA_LARGE_WEIGHT,
     ]
 
-    # For Plus account
-    # if settings.IS_PLUS_ACCOUNT:
-    #     WEIGHTS.remove(MEDIUM_WEIGHT)
-    #     WEIGHTS.remove(LARGE_WEIGHT)
-    #     WEIGHTS.remove(EXTRA_LARGE_WEIGHT)
-
     # Minimum confidence
     MINIMUM_CONFIDENCE = 25
 
@@ -52,12 +47,6 @@ if __name__ == "__main__":
     WEBCAM_SOURCE = "Webcam"
     RTSP_SOURCE = "RTSP"
     SOURCES = [IMAGE_SOURCE, VIDEO_SOURCE, WEBCAM_SOURCE, RTSP_SOURCE]
-
-    # For Plus account
-    # if settings.IS_PLUS_ACCOUNT:
-    #     SOURCES.remove(VIDEO_SOURCE)
-    #     SOURCES.remove(WEBCAM_SOURCE)
-    #     SOURCES.remove(RTSP_SOURCE)
 
     # Supported image file extensions
     IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "bmp", "webp"]
@@ -81,9 +70,8 @@ if __name__ == "__main__":
     # Default Webcam number
     DEFAULT_WEBCAM_NUMBER = 0
 
-    # token_input
-    entered_plus_account_token = None
-
+    # Plus Account Token entered by user
+    entered_plus_account_token = ""
 
     def select_video_size(width=None, height=None):
         # Calculating resolution range
@@ -149,7 +137,6 @@ if __name__ == "__main__":
             st.error("Failed to select aspect ratio!")
         return width, height
 
-
     def display_result_frames(streamlit_frame, source_frame, is_use_full_width):
         # Display object tracking, if specified
         if tracker == "No":
@@ -170,17 +157,24 @@ if __name__ == "__main__":
             use_column_width=is_use_full_width,
         )
 
-
     def create_plus_account_token_field():
-        if settings.IS_PLUS_ACCOUNT:
-            entered_plus_account_token = st.sidebar.text_input("Enter Plus Account Token", type="password",
-                                                               placeholder="Plus Account Token",
-                                                               help="Enter Plus Account Token")
-
+        if settings.APPLY_PLUS_ACCOUNT:
+            st.toast(
+                "Due to the limitation of computational power, this opportunity is only available to Plus Accounts!",
+                icon=ICON,
+            )
+            return st.sidebar.text_input(
+                "Enter Plus Account Token",
+                type="password",
+                placeholder="Plus Account Token",
+                help="Enter Plus Account Token",
+            )
+        else:
+            return None
 
     def check_plus_account_token():
-        if settings.IS_PLUS_ACCOUNT:
-            if entered_plus_account_token is None:
+        if settings.APPLY_PLUS_ACCOUNT:
+            if entered_plus_account_token == "":
                 st.error("You have not provided any token for Plus Account!")
                 return False
             elif entered_plus_account_token != plus_account_token.PLUS_ACCOUNT_TOKEN:
@@ -191,10 +185,12 @@ if __name__ == "__main__":
         else:
             return True
 
-
     # Page Configuration
     st.set_page_config(
-        page_title=TITLE, page_icon="🔬", layout="wide", initial_sidebar_state="expanded"
+        page_title=TITLE,
+        page_icon=ICON,
+        layout="wide",
+        initial_sidebar_state="expanded",
     )
 
     # Title
@@ -209,17 +205,26 @@ if __name__ == "__main__":
     # Weight selection
     model_weight = st.sidebar.selectbox("Select Weight", WEIGHTS)
 
+    if (
+        model_weight == MEDIUM_WEIGHT
+        or model_weight == LARGE_WEIGHT
+        or model_weight == EXTRA_LARGE_WEIGHT
+    ):
+        restricted_model_weight = True
+    else:
+        restricted_model_weight = False
+
     # Model Confidence selection
     confidence = (
-            float(
-                st.sidebar.slider(
-                    "Set Model Confidence",
-                    min_value=MINIMUM_CONFIDENCE,
-                    max_value=100,
-                    value=DEFAULT_CONFIDENCE,
-                )
+        float(
+            st.sidebar.slider(
+                "Set Model Confidence",
+                min_value=MINIMUM_CONFIDENCE,
+                max_value=100,
+                value=DEFAULT_CONFIDENCE,
             )
-            / 100
+        )
+        / 100
     )
 
     # Tracker selection
@@ -253,11 +258,11 @@ if __name__ == "__main__":
 
     # Construct model path
     model_path = (
-            str(settings.MODEL_DIRECTORY)
-            + "/yolov8"
-            + model_weight_suffix
-            + model_suffix
-            + ".pt"
+        str(settings.MODEL_DIRECTORY)
+        + "/yolov8"
+        + model_weight_suffix
+        + model_suffix
+        + ".pt"
     )
 
     # Loading Pre-trained Model
@@ -309,29 +314,37 @@ if __name__ == "__main__":
                     use_column_width=True,
                 )
             else:
+                if restricted_model_weight and settings.APPLY_PLUS_ACCOUNT:
+                    entered_plus_account_token = create_plus_account_token_field()
+
                 if st.sidebar.button("Run"):
-                    if tracker == "No":
-                        resource = model(uploaded_image, conf=confidence)
-                    else:
-                        resource = model.track(
-                            uploaded_image,
-                            conf=confidence,
-                            persist=True,
-                            tracker=tracker,
+                    if (
+                        restricted_model_weight and check_plus_account_token()
+                    ) or not restricted_model_weight:
+                        if tracker == "No":
+                            resource = model(uploaded_image, conf=confidence)
+                        else:
+                            resource = model.track(
+                                uploaded_image,
+                                conf=confidence,
+                                persist=True,
+                                tracker=tracker,
+                            )
+                        boxes = resource[0].boxes
+                        plotted_resource = resource[0].plot()[:, :, ::-1]
+                        st.image(
+                            plotted_resource,
+                            caption="Result Image",
+                            use_column_width=True,
                         )
-                    boxes = resource[0].boxes
-                    plotted_resource = resource[0].plot()[:, :, ::-1]
-                    st.image(
-                        plotted_resource, caption="Result Image", use_column_width=True
-                    )
-                    st.snow()
-                    try:
-                        with st.expander("Results"):
-                            for box in boxes:
-                                st.write(box.data)
-                    except Exception as exception:
-                        st.write("No image is uploaded yet!")
-                        st.write(exception)
+                        st.snow()
+                        try:
+                            with st.expander("Results"):
+                                for box in boxes:
+                                    st.write(box.data)
+                        except Exception as exception:
+                            st.write("No image is uploaded yet!")
+                            st.write(exception)
     elif source_radio == VIDEO_SOURCE:
         source_video = st.sidebar.file_uploader(
             "Select a Video File", type=VIDEO_EXTENSIONS, accept_multiple_files=False
@@ -346,22 +359,25 @@ if __name__ == "__main__":
             with column_1:
                 st.video(source_video)
             with column_2:
+                entered_plus_account_token = create_plus_account_token_field()
+
                 if st.sidebar.button("Run"):
-                    try:
-                        st_frame = st.empty()
-                        while video_capture.isOpened():
-                            success, image = video_capture.read()
-                            if success:
-                                display_result_frames(
-                                    st_frame, image, is_use_full_width=True
-                                )
-                            else:
-                                video_capture.release()
-                                break
-                    except Exception as exception:
-                        st.error(f"Error loading video: {exception}")
-                    finally:
-                        temporary_file.close()
+                    if check_plus_account_token():
+                        try:
+                            st_frame = st.empty()
+                            while video_capture.isOpened():
+                                success, image = video_capture.read()
+                                if success:
+                                    display_result_frames(
+                                        st_frame, image, is_use_full_width=True
+                                    )
+                                else:
+                                    video_capture.release()
+                                    break
+                        except Exception as exception:
+                            st.error(f"Error loading video: {exception}")
+                        finally:
+                            temporary_file.close()
     elif source_radio == WEBCAM_SOURCE:
         source_webcam = st.sidebar.number_input(
             "Set Webcam Serial",
@@ -370,11 +386,12 @@ if __name__ == "__main__":
             step=1,
             value=DEFAULT_WEBCAM_NUMBER,
         )
-
-        create_plus_account_token_field()
-
         source_webcam = int(source_webcam)
+
         source_width, source_height = select_video_size()
+
+        entered_plus_account_token = create_plus_account_token_field()
+
         if st.sidebar.button("Run"):
             if check_plus_account_token():
                 try:
@@ -385,7 +402,9 @@ if __name__ == "__main__":
                     while video_capture.isOpened():
                         success, image = video_capture.read()
                         if success:
-                            display_result_frames(st_frame, image, is_use_full_width=False)
+                            display_result_frames(
+                                st_frame, image, is_use_full_width=False
+                            )
                         else:
                             video_capture.release()
                             break
@@ -396,19 +415,25 @@ if __name__ == "__main__":
         source_rtsp = st.sidebar.text_input(
             "Set RTSP Stream URL", placeholder="Write a RTSP Stream URL"
         )
+
+        entered_plus_account_token = create_plus_account_token_field()
+
         if st.sidebar.button("Run"):
-            try:
-                video_capture = cv2.VideoCapture(source_rtsp)
-                st_frame = st.empty()
-                while video_capture.isOpened():
-                    success, image = video_capture.read()
-                    if success:
-                        display_result_frames(st_frame, image, is_use_full_width=False)
-                    else:
-                        video_capture.release()
-                        break
-            except Exception as exception:
-                st.error(f"Error loading RTSP stream: {exception}")
+            if check_plus_account_token():
+                try:
+                    video_capture = cv2.VideoCapture(source_rtsp)
+                    st_frame = st.empty()
+                    while video_capture.isOpened():
+                        success, image = video_capture.read()
+                        if success:
+                            display_result_frames(
+                                st_frame, image, is_use_full_width=False
+                            )
+                        else:
+                            video_capture.release()
+                            break
+                except Exception as exception:
+                    st.error(f"Error loading RTSP stream: {exception}")
 
     else:
         st.error("Failed to select source!")
